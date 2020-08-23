@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europa Hotel</title>
+<style type="text/css">
+*, *:after, *::before { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+HTML, BODY { height: 100%; font-size: 16px; font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+BODY { color: #000000; background: #FFFFFF; margin: 0; padding:20px;}
+#card-element{width:90%;height:44px;padding:12px;margin:0 auto;border-radius:4px;border:1px solid #999999;cursor: pointer;}
+#pay-btn{width:90%;background:#A1CAF1;font-size: 16px;margin:10px;padding:12px;border-radius:4px;}
+#pay-btn:hover{background:#CCCCCC;}
+#pay-btn:disabled{opacity:0.5;cursor:default;}
+.card-holder {max-width:550px; padding:8px; border: 1px solid #AAAAAA; margin: 0 auto; border-radius:10px;}
+.hidden {display: none;}
+.input-error {max-width: 500px; color: #FF0000; text-align: center; border: 1px solid #FF0084; padding: 5px; margin: 5px auto; z-index: 100; }
+.success{width: 500px; color: #008800; text-align: center; border: 1px solid #008800; padding: 5px; margin: 5px auto; z-index: 100; }
+.spinner{width: 10%; color: #000000; background: #ACE1AF; position: fixed; top: 30%; left: 45%; text-align: center; border: 5px solid #000000; box-shadow: 5px 5px 5px #999999; z-index: 150; padding: 10px; }
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://js.stripe.com/v3/"></script>
+<script type="text/javascript">
+var stripe=Stripe('#API_KEY#');
+var data=JSON.parse('#JSON#');
+var elements=stripe.elements();
+var cardElement=elements.create('card',{
+	style:{
+		base:{
+			fontFamily:'"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+			fontSize:'16px',
+			color:'#000000'
+			},
+			invalid:{
+				iconColor:'#FF0000',
+				color:'#FF0000',
+			}
+		}
+	}
+);
+cardElement=elements.getElement('card');
+</script>
+</head>
+<body>
+
+<h1>Make Payment</h1>
+<ul><li>Please enter your credit card details.</li>
+	<li>Then press the <q>Pay</q> button.</li>
+</ul>
+<div class="card-holder">
+	<p style="text-align:center">Credit Card Details</p>
+	<div id="card-element"></div>
+	<div style="text-align:center"><button id="pay-btn" type="button" onClick="PayNow()">Pay Now</button></div>
+</div>
+<div id="Error" class="input-error hidden"></div>
+<div id="Success" class="success hidden">Your payment has been received, Thank you</div>
+<div id="Wait" class="spinner hidden">Please Wait...</div>
+<script type="text/javascript">
+cardElement.mount('#card-element');
+cardElement.on('change',({error})=>{
+	if(error){
+		$('#Error').removeClass('hidden');
+		$('#Error').html(error.message);
+	}
+	else{
+		$('#Error').addClass('hidden');
+		$('#Error').html('');
+	}
+});
+function PayNow(){
+	$('#pay-btn').prop('disabled','disabled');
+	$('#Wait').removeClass('hidden');
+	stripe.confirmCardPayment(
+			data.client_secret,{
+				payment_method:{
+					card:cardElement,
+					billing_details:{
+						/* USE stripe.pl TO INSERT YOUR ACTUAL DATA HERE (ADDRESS CAN BE OMITTED) */
+						address:{
+							line1:'26 5th Avenue East',
+							line2:null,
+							city:'Los Angeles',
+							state:'CA',
+							postal_code:'19500',
+							country:'US'
+						},
+						email:'customer@domain.com',
+						name:'Joe Customer'
+					}
+				}
+			}
+		).then(function(result){
+			if(result.error) {
+				$('#Wait').addClass('hidden');
+				$('#Error').removeClass('hidden');
+				$('#Error').html(result.error.message);
+				$('#pay-btn').prop('disabled','');
+			}
+			else{
+				if(result.paymentIntent.status==='succeeded'){
+					$('#Wait').addClass('hidden');
+					$('#Error').addClass('hidden');
+					$('#Success').removeClass('hidden');
+				}
+			}
+		}
+	);
+}
+</script>
+
+<p style="color:#778899">Test Cards:<br>4242 4242 4242 4242 : Always Good<br>4000 0000 0000 9995 : Fails insufficient funds<br>4000 0025 0000 3155 : 3D secure</p>
+</body>
+</html>
